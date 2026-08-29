@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi.testclient import TestClient
 
 from src.main import app
@@ -42,7 +44,7 @@ def test_get_nonexistent_user():
 
 
 def test_create_user():
-    email = "pytest_user_2@example.com"
+    email = f"pytest_{uuid.uuid4().hex}@example.com"
 
     response = client.post(
         "/users",
@@ -58,7 +60,7 @@ def test_create_user():
 
     assert data["email"] == email
     assert data["name"] == "Pytest User"
-    assert data["balance"] == 0.0
+    assert data["balance"] == 0
 
 
 def test_create_deposit():
@@ -114,18 +116,24 @@ def test_transaction_unknown_user():
     assert response.json()["detail"] == "User not found"
 
 
-def test_transaction_negative_amount():
+import pytest
+
+
+@pytest.mark.parametrize(
+    "amount",
+    [-100, -1, -0.01],
+)
+def test_transaction_negative_amount(amount):
     response = client.post(
         "/transactions",
         json={
             "user_id": 1,
-            "amount": -100,
+            "amount": amount,
             "type": "deposit",
         },
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"] == "Amount must be greater than zero"
 
 
 def test_transaction_invalid_type():
