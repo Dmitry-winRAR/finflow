@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
-    balance NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    balance NUMERIC(12, 2) NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -10,6 +10,11 @@ CREATE TABLE IF NOT EXISTS transactions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     amount NUMERIC(12, 2) NOT NULL,
-    type VARCHAR(20) NOT NULL CHECK (type IN ('deposit', 'withdrawal')),
+    type VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+INSERT INTO users (email, name, balance)
+VALUES ('dmitry@test.com', 'Dmitry', 0)
+ON CONFLICT (email) DO NOTHING;
