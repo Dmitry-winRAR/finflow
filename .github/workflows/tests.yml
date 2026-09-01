@@ -47,6 +47,14 @@ jobs:
         run: |
           psql -h localhost -U finflow -d finflow -f db/init.sql
 
+      - name: Verify database schema
+        env:
+          PGPASSWORD: finflow_password
+        run: |
+          psql -h localhost -U finflow -d finflow -c "\dt"
+          psql -h localhost -U finflow -d finflow -c "\d users"
+          psql -h localhost -U finflow -d finflow -c "\d transactions"
+
       - name: Run tests
         env:
           DATABASE_URL: postgresql://finflow:finflow_password@localhost:5432/finflow
