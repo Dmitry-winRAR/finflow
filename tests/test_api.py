@@ -25,7 +25,10 @@ def test_get_users():
 
 
 def test_get_existing_user():
-    response = client.get("/users/1")
+    response = client.get(
+        "/users/1",
+        headers={"X-User-Id": "1"},
+    )
 
     assert response.status_code == 200
 
@@ -37,11 +40,13 @@ def test_get_existing_user():
 
 
 def test_get_nonexistent_user():
-    response = client.get("/users/999999")
+    response = client.get(
+        "/users/999999",
+        headers={"X-User-Id": "999999"},
+    )
 
     assert response.status_code == 404
     assert response.json()["detail"] == "User not found"
-
 
 def test_create_user():
     email = f"pytest_{uuid.uuid4().hex}@example.com"
@@ -162,3 +167,33 @@ def test_withdrawal_insufficient_balance():
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Insufficient balance"
+
+def test_user_cannot_access_another_user():
+    email = f"idor_{uuid.uuid4().hex}@example.com"
+
+    create_response = client.post(
+        "/users",
+        json={
+            "email": email,
+            "name": "Second User",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    second_user_id = create_response.json()["id"]
+
+    response = client.get(
+        f"/users/{second_user_id}",
+        headers={"X-User-Id": "1"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Access denied"
+
+
+def test_user_without_authentication_cannot_access_user():
+    response = client.get("/users/1")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "X-User-Id header is required"    

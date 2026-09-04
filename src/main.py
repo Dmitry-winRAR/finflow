@@ -1,8 +1,10 @@
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from src.database import get_connection
+from src.kafka import publish_transaction_event
+
 
 app = FastAPI()
 
@@ -16,6 +18,20 @@ class TransactionCreate(BaseModel):
     user_id: int
     amount: float
     type: str
+
+
+def check_user_access(user_id: int, x_user_id: int | None):
+    if x_user_id is None:
+        raise HTTPException(
+            status_code=401,
+            detail="X-User-Id header is required",
+        )
+
+    if x_user_id != user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied",
+        )
 
 
 @app.get("/")
@@ -85,7 +101,12 @@ def get_users():
 
 
 @app.get("/users/{user_id}")
-def get_user(user_id: int):
+def get_user(
+    user_id: int,
+    x_user_id: int | None = Header(default=None),
+):
+    check_user_access(user_id, x_user_id)
+
     connection = get_connection()
 
     try:
@@ -125,7 +146,6 @@ def create_transaction(transaction: TransactionCreate):
 
     try:
         with connection.cursor() as cursor:
-
             cursor.execute(
                 "SELECT balance FROM users WHERE id = %s",
                 (transaction.user_id,),
@@ -198,15 +218,27 @@ def create_transaction(transaction: TransactionCreate):
 
             connection.commit()
 
-            return {
-                "id": new_transaction[0],
-                "user_id": new_transaction[1],
-                "amount": float(new_transaction[2]),
-                "type": new_transaction[3],
-                "status": new_transaction[4],
-                "created_at": new_transaction[5],
-            }
+        try:
+            publish_transaction_event(
+                {
+                    "event": "transaction.created",
+                    "transaction_id": new_transaction[0],
+                    "user_id": new_transaction[1],
+                    "amount": float(new_transaction[2]),
+                    "type": new_transaction[3],
+                }
+            )
+        except Exception:
+            pass
+
+        return {
+            "id": new_transaction[0],
+            "user_id": new_transaction[1],
+            "amount": float(new_transaction[2]),
+            "type": new_transaction[3],
+            "status": new_transaction[4],
+            "created_at": new_transaction[5],
+        }
 
     finally:
         connection.close()
-
