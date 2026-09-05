@@ -2,7 +2,7 @@
 
 QA automation project for a fintech REST API.
 
-The project demonstrates API testing, database testing, integration testing and automated test execution in CI.
+The project demonstrates automated API testing, PostgreSQL database testing, integration testing, security testing and CI execution using Python and Pytest.
 
 ## Tech Stack
 
@@ -11,8 +11,10 @@ The project demonstrates API testing, database testing, integration testing and 
 * FastAPI
 * PostgreSQL 16
 * Psycopg
+* Apache Kafka
 * Docker / Docker Compose
 * GitHub Actions
+* Git
 
 ## What is Tested
 
@@ -29,6 +31,14 @@ The project demonstrates API testing, database testing, integration testing and 
 * Insufficient balance
 * Unknown users
 
+### Security Testing
+
+The project includes basic API authorization checks:
+
+* Access to user data without authentication
+* IDOR-style access to another user's data
+* Validation of `X-User-Id` authorization header
+
 ### Database Testing
 
 * PostgreSQL connection
@@ -39,18 +49,27 @@ The project demonstrates API testing, database testing, integration testing and 
 
 ### Integration Testing
 
-The project verifies the complete flow between the API and PostgreSQL database.
+The project verifies complete flows between the REST API and PostgreSQL database.
 
 Examples:
 
 * Create a user through the API → verify the user in PostgreSQL
-* Create a deposit → verify the balance in PostgreSQL
-* Create a withdrawal → verify the balance in PostgreSQL
+* Create a deposit → verify the updated balance in PostgreSQL
+* Create a withdrawal → verify the updated balance in PostgreSQL
+
+### Kafka
+
+Apache Kafka is integrated into the application for publishing transaction events.
+
+The application publishes a `transaction.created` event after a successful transaction.
+
+Kafka is included as part of the project architecture and Docker environment.
 
 ## Project Structure
 
 ```text
 finflow-qa/
+
 ├── .github/
 │   └── workflows/
 │       └── tests.yml
@@ -59,6 +78,7 @@ finflow-qa/
 ├── src/
 │   ├── __init__.py
 │   ├── database.py
+│   ├── kafka.py
 │   └── main.py
 ├── tests/
 │   ├── conftest.py
@@ -76,13 +96,15 @@ finflow-qa/
 
 ## Running the Project
 
-### 1. Start PostgreSQL
+### 1. Start Docker services
 
 ```bash
 docker compose up -d
 ```
 
-### 2. Activate virtual environment
+This starts the PostgreSQL and Kafka containers.
+
+### 2. Activate the virtual environment
 
 Windows:
 
@@ -96,7 +118,7 @@ Windows:
 pip install -r requirements.txt
 ```
 
-### 4. Run tests
+### 4. Run the tests
 
 ```bash
 pytest -v
@@ -104,31 +126,56 @@ pytest -v
 
 ## Test Results
 
-The current test suite contains **20 automated tests** covering API, database and integration scenarios.
+The current test suite contains **22 automated tests** covering:
+
+* API testing
+* Database testing
+* Integration testing
+* Security testing
+* Smoke testing
 
 All tests pass locally and in GitHub Actions.
 
-## CI
+```text
+22 passed
+```
+
+## CI/CD
 
 GitHub Actions automatically runs the test suite on:
 
-* push to `main`
-* pull requests to `main`
+* Pushes to `main`
+* Pull requests to `main`
 
 The CI pipeline:
 
 1. Starts PostgreSQL
 2. Initializes the database schema
 3. Installs Python dependencies
-4. Runs the automated tests
+4. Runs the automated test suite
+
+The current CI pipeline successfully executes all 22 tests.
+
+## Project Goals
+
+The project was created to practice and demonstrate:
+
+* REST API automation
+* Database validation with PostgreSQL
+* Integration testing
+* Security testing
+* Event-driven architecture with Kafka
+* Docker-based test environments
+* CI/CD automation
+* Python and Pytest
 
 ## Future Improvements
 
-Planned areas for further development:
+Possible areas for further development:
 
-* Apache Kafka testing
-* Security testing
-* Additional API scenarios
-* Test reporting
+* Expanded Kafka integration testing
+* API test reporting
 * Improved test data management
+* Additional negative API scenarios
+* Authentication and authorization improvements
 * API documentation
